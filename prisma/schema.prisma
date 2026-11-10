@@ -1,0 +1,152 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  LEARNER
+  TUTOR
+  BRANCH_MANAGER
+  GLOBAL_ADMIN
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+  REENROLLMENT_REQUIRED
+}
+
+enum ExpirationWindow {
+  ACTIVE
+  WINDOW_90_DAYS
+  WINDOW_60_DAYS
+  WINDOW_30_DAYS
+  EXPIRED
+}
+
+enum ScormVersion {
+  SCORM_12
+  SCORM_2004
+}
+
+model Organization {
+  id        String         @id @default(cuid())
+  name      String
+  code      String         @unique
+  parentId  String?
+  parent    Organization?  @relation("BranchHierarchy", fields: [parentId], references: [id])
+  children  Organization[] @relation("BranchHierarchy")
+  users     User[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String
+  role           Role            @default(LEARNER)
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  enrollments    Enrollment[]
+  certificates   Certificate[]
+  alerts         InAppAlert[]
+  xapiStatements XApiStatement[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([organizationId, role])
+}
+
+model Course {
+  id                    String         @id @default(cuid())
+  title                 String
+  slug                  String         @unique
+  isComplianceMandatory Boolean        @default(false)
+  validityDays          Int?
+  scormPackageUrl       String?
+  scormVersion          ScormVersion   @default(SCORM_12)
+  enrollments           Enrollment[]
+  certificates          Certificate[]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+}
+
+model Enrollment {
+  id                String           @id @default(cuid())
+  userId            String
+  courseId          String
+  status            EnrollmentStatus @default(NOT_STARTED)
+  progressPercent   Float            @default(0)
+  scoreRaw          Float?
+  scoreMin          Float?
+  scoreMax          Float?
+  bookmarkLocation  String?
+  suspendData       String?
+  cmiState          Json?
+  assignedAt        DateTime         @default(now())
+  completedAt       DateTime?
+  expiresAt         DateTime?
+  reenrollmentCount Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id])
+  course            Course           @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([userId, status])
+}
+
+model Certificate {
+  id               String           @id @default(cuid())
+  userId           String
+  courseId         String
+  serialNumber     String           @unique
+  issuedAt         DateTime         @default(now())
+  expiresAt        DateTime
+  expirationWindow ExpirationWindow @default(ACTIVE)
+  isExpired        Boolean          @default(false)
+  lastEvaluatedAt  DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id])
+  course           Course           @relation(fields: [courseId], references: [id])
+
+  @@index([expiresAt, isExpired, expirationWindow])
+}
+
+model InAppAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  severity  String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model XApiStatement {
+  id        String   @id @default(cuid())
+  userId    String
+  actor     Json
+  verb      Json
+  object    Json
+  result    Json?
+  context   Json?
+  timestamp DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, timestamp])
+}

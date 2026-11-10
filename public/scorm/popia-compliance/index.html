@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POPIA & Learner Data Privacy SCORM Module</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #FAF8F5;
+      color: #1C1917;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E7E5E0;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 680px;
+      margin: 0 auto;
+      box-shadow: 0 1px 3px rgba(28,25,23,0.04);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #FEF5E7;
+      color: #9C5B07;
+      border: 1px solid rgba(248,153,29,0.3);
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    p { font-size: 13px; color: #44403C; margin-bottom: 16px; }
+    .question {
+      background: #FAF8F5;
+      border: 1px solid #E7E5E0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .question h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+    .option {
+      display: block;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      border: 1px solid #E7E5E0;
+      background: #FFFFFF;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .option:hover {
+      border-color: #F8991D;
+      background: #FFF9F0;
+    }
+    .option.selected {
+      border-color: #F8991D;
+      background: #FEF5E7;
+      font-weight: 600;
+      color: #9C5B07;
+    }
+    button.submit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1C1917;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    button.submit-btn:hover { background: #000000; }
+    .success-box {
+      display: none;
+      background: #ECFDF5;
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #065F46;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    .status-bar {
+      font-family: monospace;
+      font-size: 11px;
+      color: #78716C;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #E7E5E0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">SCORM 1.2 Interactive Learning Object</div>
+    <h1>POPIA: Protection of Learner Personal Information</h1>
+    <p>Complete this mandatory compliance module. Your progress, location bookmarks, and quiz scores will be automatically communicated back to the Buddy Learning LMS via SCORM CMI calls.</p>
+
+    <div class="question">
+      <h3>Question 1: Under South Africa's POPIA Act, what constitutes valid consent for processing academic marks of minors?</h3>
+      <label class="option" onclick="selectOption(this, 'A')">
+        <input type="radio" name="q1" value="A" style="display:none;"> A. Verbal agreement by a classmate during tutoring.
+      </label>
+      <label class="option" onclick="selectOption(this, 'B')">
+        <input type="radio" name="q1" value="B" style="display:none;"> B. Explicit, informed consent from a parent, legal guardian, or authorized scholarship sponsor.
+      </label>
+      <label class="option" onclick="selectOption(this, 'C')">
+        <input type="radio" name="q1" value="C" style="display:none;"> C. No consent is required for high school students.
+      </label>
+    </div>
+
+    <button class="submit-btn" onclick="submitAssessment()">Submit Assessment &amp; Commit</button>
+
+    <div id="successBox" class="success-box">
+      <strong>🎉 Assessment Passed!</strong> Your score of 100% and completion state have been committed to the SCORM runtime adapter. Your verified certificate has been queued for issuance.
+    </div>
+
+    <div class="status-bar" id="statusBar">SCORM Adapter: Detecting runtime...</div>
+  </div>
+
+  <script>
+    var scormAPI = null;
+    var is2004 = false;
+
+    function findAPI(win) {
+      try {
+        if (win.API) { scormAPI = win.API; is2004 = false; return true; }
+        if (win.API_1484_11) { scormAPI = win.API_1484_11; is2004 = true; return true; }
+        if (win.parent && win.parent !== win) {
+          if (win.parent.API) { scormAPI = win.parent.API; is2004 = false; return true; }
+          if (win.parent.API_1484_11) { scormAPI = win.parent.API_1484_11; is2004 = true; return true; }
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    window.onload = function() {
+      var found = findAPI(window);
+      var statusEl = document.getElementById('statusBar');
+      if (found && scormAPI) {
+        if (!is2004) {
+          scormAPI.LMSInitialize("");
+          scormAPI.LMSSetValue("cmi.core.lesson_location", "popia_section_1");
+          scormAPI.LMSCommit("");
+          statusEl.innerText = "SCORM Adapter: Connected to SCORM 1.2 API";
+        } else {
+          scormAPI.Initialize("");
+          scormAPI.SetValue("cmi.location", "popia_section_1");
+          scormAPI.Commit("");
+          statusEl.innerText = "SCORM Adapter: Connected to SCORM 2004 API";
+        }
+      } else {
+        statusEl.innerText = "SCORM Adapter: Standalone mode (Simulated)";
+      }
+    };
+
+    function selectOption(el, val) {
+      var options = document.querySelectorAll('.option');
+      options.forEach(function(o) { o.classList.remove('selected'); });
+      el.classList.add('selected');
+      el.querySelector('input').checked = true;
+
+      if (scormAPI) {
+        if (!is2004) {
+          scormAPI.LMSSetValue("cmi.core.lesson_location", "selected_option_" + val);
+          scormAPI.LMSCommit("");
+        } else {
+          scormAPI.SetValue("cmi.location", "selected_option_" + val);
+          scormAPI.Commit("");
+        }
+      }
+    }
+
+    function submitAssessment() {
+      var selected = document.querySelector('input[name="q1"]:checked');
+      if (!selected) {
+        alert("Please select an answer to submit.");
+        return;
+      }
+
+      var isCorrect = selected.value === 'B';
+      var score = isCorrect ? 100 : 40;
+
+      if (scormAPI) {
+        if (!is2004) {
+          scormAPI.LMSSetValue("cmi.core.score.raw", String(score));
+          scormAPI.LMSSetValue("cmi.core.lesson_status", isCorrect ? "passed" : "incomplete");
+          scormAPI.LMSSetValue("cmi.core.lesson_location", "assessment_complete");
+          scormAPI.LMSCommit("");
+        } else {
+          scormAPI.SetValue("cmi.score.raw", String(score));
+          scormAPI.SetValue("cmi.success_status", isCorrect ? "passed" : "failed");
+          scormAPI.SetValue("cmi.completion_status", isCorrect ? "completed" : "incomplete");
+          scormAPI.SetValue("cmi.location", "assessment_complete");
+          scormAPI.Commit("");
+        }
+      }
+
+      if (isCorrect) {
+        document.getElementById('successBox').style.display = 'block';
+        document.getElementById('statusBar').innerText = "SCORM Telemetry: Passed (100%) - Dispatched to LMS";
+      } else {
+        alert("Incorrect answer. POPIA requires explicit consent from a parent or legal guardian for minors.");
+      }
+    }
+  </script>
+</body>
+</html>
